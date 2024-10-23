@@ -4,3 +4,7 @@ runConfig:
   maxInstances: 1
   minInstances: 0
   concurrency: 100
+
+env:
+  - variable: GOOGLE_GENAI_API_KEY
+    secret: googleGenaiApiKey
