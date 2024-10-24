@@ -15,8 +15,11 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 //   CardHeader,
 //   CardTitle,
 // } from '@/components/ui/card';
-import { callMenuSuggestionFlow } from './genkit';
+import { callMealSuggestionFlow, PromptHistory } from './genkit';
 import Markdown from 'react-markdown';
+
+const WELCOME_PROMPT =
+  "Hello! I'm your AI meal planner. What do you feel like eating?";
 
 type Message = {
   role: 'user' | 'bot';
@@ -24,11 +27,20 @@ type Message = {
 };
 
 export default function Component() {
-  const [userPrompts, setUserPrompts] = React.useState<string[]>([]);
+  const [promptHistory, setPromptHistory] = React.useState<PromptHistory[]>([
+    {
+      role: 'model',
+      content: [
+        {
+          text: WELCOME_PROMPT,
+        },
+      ],
+    },
+  ]);
   const [messages, setMessages] = React.useState<Message[]>([
     {
       role: 'bot',
-      content: "Hello! I'm your AI meal planner. What do you feel like eating?",
+      content: WELCOME_PROMPT,
     },
     // {
     //   role: 'user',
@@ -131,14 +143,28 @@ export default function Component() {
     const input = form.elements.namedItem('message') as HTMLInputElement;
     const newMessage = input.value.trim();
     if (newMessage) {
-      const newUserPrompts = [...userPrompts, newMessage];
-      setUserPrompts(newUserPrompts);
       setMessages([...messages, { role: 'user', content: newMessage }]);
+      setPromptHistory([
+        ...promptHistory,
+        { role: 'user', content: [{ text: newMessage }] },
+      ]);
 
       input.value = '';
 
       (async () => {
-        const result = await callMenuSuggestionFlow(newUserPrompts);
+        const result = await callMealSuggestionFlow({
+          prompt: newMessage,
+          history: promptHistory,
+        });
+
+        setPromptHistory((newPromptHistory) => [
+          ...newPromptHistory,
+          {
+            role: 'model',
+            content: [{ text: result }],
+          },
+        ]);
+
         const newContent: Message = {
           role: 'bot',
           content: <Markdown remarkPlugins={[remarkGfm]}>{result}</Markdown>,
